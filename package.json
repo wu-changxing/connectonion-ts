@@ -1,0 +1,60 @@
+{
+  "name": "connectonion-ts",
+  "version": "0.0.1",
+  "description": "TypeScript SDK for ConnectOnion - A framework for creating AI agents with behavior tracking",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "build:examples": "tsc -p tsconfig.examples.json",
+    "watch": "tsc -w",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:examples": "npm run build:examples && node dist/examples/examples/test-tools.js",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "llm",
+    "openai",
+    "tools",
+    "automation",
+    "typescript"
+  ],
+  "author": "ConnectOnion Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/connectonion/connectonion-ts"
+  },
+  "bugs": {
+    "url": "https://github.com/connectonion/connectonion-ts/issues"
+  },
+  "homepage": "https://github.com/connectonion/connectonion-ts#readme",
+  "dependencies": {
+    "openai": "^4.0.0",
+    "dotenv": "^16.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "jest": "^29.0.0",
+    "@types/jest": "^29.0.0",
+    "ts-jest": "^29.0.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
