@@ -2,7 +2,7 @@
 
 > **Build AI agents that actually DO things** - Zero boilerplate, maximum power
 
-[![npm version](https://img.shields.io/npm/v/connectonion-ts.svg)](https://www.npmjs.com/package/connectonion-ts)
+[![npm version](https://img.shields.io/npm/v/connectonion.svg)](https://www.npmjs.com/package/connectonion)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](https://www.typescriptlang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -12,7 +12,7 @@ ConnectOnion is a TypeScript SDK that makes building AI agents ridiculously simp
 
 ```typescript
 // This is all you need for a working AI agent
-import { Agent } from 'connectonion-ts';
+import { Agent } from 'connectonion';
 
 function calculateTip(bill: number, percentage: number): number {
   return bill * (percentage / 100);
@@ -29,7 +29,7 @@ const response = await agent.input('What\'s a 20% tip on $85?');
 
 **That's it.** No schemas. No configurations. No boilerplate.
 
-## 🎯 Why ConnectOnion?
+## 🎯 Why CO?
 
 ### 🧠 **Smart by Default**
 - Agents automatically understand when and how to use tools
@@ -78,7 +78,7 @@ export OPENAI_API_KEY=sk-...
 
 ### 3. Create Your First Agent
 ```typescript
-import { Agent } from 'connectonion-ts';
+import { Agent } from 'connectonion';
 
 // Define what your agent can do
 function searchWeb(query: string): string {
@@ -140,7 +140,7 @@ const response = await agent.input(
 
 ### Example 2: Data Analysis Agent
 ```typescript
-import { Agent } from 'connectonion-ts';
+import { Agent } from 'connectonion';
 import * as fs from 'fs';
 import * as csv from 'csv-parse';
 
@@ -315,7 +315,7 @@ npm run build
 
 ## 📄 License
 
-MIT © [ConnectOnion Team](https://github.com/connectonion)
+MIT © [CO Team](https://github.com/connectonion)
 
 ## 🔗 Links
 
