@@ -13,6 +13,15 @@
 
 import { Tool } from '../types';
 
+// Map TypeScript/JavaScript types to JSON Schema types
+const TYPE_MAP: Record<string, string> = {
+  'string': 'string',
+  'number': 'number',
+  'boolean': 'boolean',
+  'object': 'object',
+  'array': 'array',
+};
+
 /**
  * Extract parameter information from a function
  * 
@@ -78,13 +87,13 @@ function extractDescription(funcStr: string): string | null {
 
 /**
  * Extract parameters from function signature
- * 
- * Parses the function signature to identify parameters and their properties.
- * Currently treats all parameters as strings (a limitation that could be improved).
- * 
+ *
+ * Parses the function signature to identify parameters and their TypeScript types.
+ * Uses TYPE_MAP to convert TypeScript types to JSON Schema types.
+ *
  * @param funcStr - String representation of the function
  * @returns JSON Schema object describing the parameters
- * 
+ *
  * @private
  */
 function extractParameters(funcStr: string): any {
@@ -97,51 +106,66 @@ function extractParameters(funcStr: string): any {
       properties: {},
     };
   }
-  
+
   // Split parameters by comma
   const params = paramMatch[1].split(',').map(p => p.trim());
   const properties: Record<string, any> = {};
   const required: string[] = [];
-  
+
   for (const param of params) {
     // Handle parameters with default values (optional)
     // Check for TypeScript optional (?) or default values (=)
     const hasDefault = param.includes('=');
     const hasOptional = param.includes('?');
     const isOptional = hasDefault || hasOptional;
-    
+
     // Clean the parameter to get just the name
     let cleanParam = param;
     if (hasDefault) {
       cleanParam = param.split('=')[0].trim();
     }
-    
-    // Extract parameter name (handle TypeScript type annotations)
+
+    // Extract parameter name and type annotation
     // Remove optional marker if present
     cleanParam = cleanParam.replace('?', '');
-    const paramName = cleanParam.split(':')[0].trim();
-    
+    const parts = cleanParam.split(':').map(p => p.trim());
+    const paramName = parts[0];
+    const typeAnnotation = parts[1]; // e.g., "string", "number", "boolean"
+
     // Skip destructured parameters and complex types for now
     if (paramName && !paramName.includes('{') && !paramName.includes('[')) {
-      // TODO: Extract actual TypeScript types instead of defaulting to string
-      properties[paramName] = { type: 'string' }; // Default to string
-      
+      // Use TYPE_MAP to convert TypeScript type to JSON Schema type
+      let schemaType = 'string'; // Default fallback
+
+      if (typeAnnotation) {
+        // Extract base type (handle complex types like "string[]" or "Promise<string>")
+        const baseType = typeAnnotation.replace(/\[\]$/, '').replace(/<.*>/, '').trim();
+        schemaType = TYPE_MAP[baseType] || 'string';
+
+        // Handle array types (e.g., "string[]")
+        if (typeAnnotation.includes('[]')) {
+          schemaType = 'array';
+        }
+      }
+
+      properties[paramName] = { type: schemaType };
+
       if (!isOptional) {
         required.push(paramName);
       }
     }
   }
-  
+
   // Build JSON Schema for parameters
   const schema: any = {
     type: 'object',
     properties,
   };
-  
+
   if (required.length > 0) {
     schema.required = required;
   }
-  
+
   return schema;
 }
 
@@ -179,6 +203,7 @@ export function createToolFromFunction(func: Function): Tool {
   const tool: Tool = {
     name,
     description,
+    xray: (func as any)?.__xray__ === true,
     
     // The run method executes the actual function with error handling
     run: (args: Record<string, any>) => {
@@ -206,6 +231,18 @@ export function createToolFromFunction(func: Function): Tool {
   };
   
   return tool;
+}
+
+/**
+ * Mark a function as an @xray breakpoint tool for the interactive debugger.
+ */
+export function xray<T extends Function>(func: T): T {
+  try {
+    Object.defineProperty(func, '__xray__', { value: true, configurable: true });
+  } catch {
+    (func as any).__xray__ = true;
+  }
+  return func as any;
 }
 
 /**

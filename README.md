@@ -29,6 +29,15 @@ const response = await agent.input('What\'s a 20% tip on $85?');
 
 **That's it.** No schemas. No configurations. No boilerplate.
 
+## 🆕 Python-Parity Highlights
+
+- Default LLM: Anthropic Claude Sonnet 3.5 (`claude-3-5-sonnet-20241022`)
+- LLM factory: routes `claude-*`, `gpt-*`/`o*`, `gemini-*`, and `co/*` (OpenOnion)
+- Structured output: `llm.structuredComplete(messages, schema)` returns validated JSON
+- Multi‑turn: agent now keeps conversation state until `resetConversation()`
+- Console logging: progress printed and logged to `./.co/logs/{name}.log` by default
+- Env override: set `CONNECTONION_LOG` to choose a custom log file
+
 ## 🎯 Why CO?
 
 ### 🧠 **Smart by Default**
@@ -74,6 +83,21 @@ pnpm add connectonion-ts
 ```bash
 export OPENAI_API_KEY=sk-...
 # or use .env file
+
+# Anthropic (default)
+export ANTHROPIC_API_KEY=sk-ant-...
+
+# Gemini (optional)
+export GEMINI_API_KEY=sk-gem-...  # or GOOGLE_API_KEY
+
+# OpenOnion managed keys (optional, for co/* models)
+export OPENONION_API_KEY=oo-...
+export OPENONION_BASE_URL=https://oo.openonion.ai/v1
+# Dev mode: uses http://localhost:8000/v1
+export OPENONION_DEV=1
+
+# Console log override (otherwise ./.co/logs/{name}.log)
+export CONNECTONION_LOG=./my-agent.log
 ```
 
 ### 3. Create Your First Agent

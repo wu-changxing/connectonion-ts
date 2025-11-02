@@ -81,6 +81,8 @@ export interface Tool {
   run: (args: Record<string, any>) => Promise<any> | any;
   /** Converts the tool to an OpenAI function schema */
   toFunctionSchema: () => FunctionSchema;
+  /** Optional: mark as @xray to pause in debugger */
+  xray?: boolean;
 }
 
 /**
@@ -130,6 +132,8 @@ export interface AgentConfig {
   maxIterations?: number;
   /** Trust configuration for the agent */
   trust?: string | any; // Agent type would create circular dependency
+  /** Logging: true=./{name}.log, false=off, undefined=~/.co/logs/{name}.log, or string path */
+  log?: boolean | string;
 }
 
 /**
@@ -144,4 +148,13 @@ export interface LLM {
    * @returns Promise resolving to the LLM response
    */
   complete(messages: Message[], tools?: FunctionSchema[]): Promise<LLMResponse>;
+
+  /**
+   * Generate structured output matching a schema.
+   * Provider implementations may use native structured APIs if available,
+   * otherwise they will prompt the model to return strict JSON and parse it.
+   * @param messages - Conversation history
+   * @param schema - JSON Schema-like object describing expected output
+   */
+  structuredComplete<T = any>(messages: Message[], schema: any): Promise<T>;
 }

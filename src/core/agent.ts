@@ -14,8 +14,13 @@ import {
 } from '../types';
 import { createLLM } from '../llm';
 import { History } from '../history';
+import { Console } from '../console';
 import { processTools } from '../tools/tool-utils';
+import { injectXrayContext, clearXrayContext } from '../tools/xray';
 import * as dotenv from 'dotenv';
+import * as fs from 'fs';
+import * as readline from 'readline';
+import { createTrustAgent, getDefaultTrustLevel } from '../trust';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -68,6 +73,23 @@ export class Agent {
   /** History tracker for recording all agent behaviors */
   private history: History;
 
+  /** Persistent conversation messages for multi-turn interactions */
+  private messages: Message[] | null = null;
+
+  /** Console for terminal + optional file logging */
+  private console: Console;
+
+  /** Current iteration counter for logging */
+  private currentIteration: number = 0;
+  /** Debug flag to pause at @xray tools */
+  private debugEnabled = false;
+  /** Trust configuration object */
+  private _trust: any = null;
+  /** In-memory trace entries for xray-style introspection */
+  private trace: Array<{ tool_name: string; timing: number; status: string } > = [];
+  /** Last user prompt, for xray context */
+  private lastUserPrompt: string | null = null;
+
   /**
    * Creates a new Agent instance
    * 
@@ -99,7 +121,16 @@ export class Agent {
    */
   constructor(config: AgentConfig) {
     this.name = config.name;
-    this.systemPrompt = config.systemPrompt || `You are ${config.name}, a helpful AI assistant.`;
+    // Support systemPrompt as raw string or a file path (if exists)
+    let systemPrompt = config.systemPrompt;
+    if (systemPrompt && typeof systemPrompt === 'string' && fs.existsSync(systemPrompt)) {
+      try {
+        systemPrompt = fs.readFileSync(systemPrompt, 'utf-8');
+      } catch {
+        // ignore file read errors and use as-is
+      }
+    }
+    this.systemPrompt = systemPrompt || `You are ${config.name}, a helpful AI assistant.`;
     this.maxIterations = config.maxIterations || 10;
     
     // Process tools: convert functions, class instances, etc. to Tool objects
@@ -111,16 +142,37 @@ export class Agent {
     // Initialize behavior history tracking
     // All behaviors are saved to ~/.connectonion/agents/{name}/behavior.json
     this.history = new History(this.name);
+
+    // Setup console logging
+    let logFile: string | undefined;
+    if (process.env.CONNECTONION_LOG) {
+      logFile = process.env.CONNECTONION_LOG;
+    } else if (config.log === true) {
+      logFile = `${this.name}.log`;
+    } else if (typeof config.log === 'string') {
+      logFile = config.log;
+    } else if (config.log === false) {
+      logFile = undefined;
+    } else {
+      // Default to .co/logs/{name}.log in current working directory
+      logFile = `.co/logs/${this.name}.log`;
+    }
+    this.console = new Console(logFile);
     
     // Initialize LLM - either use provided instance or create one
     if (config.llm) {
       this.llm = config.llm;
     } else {
-      // Create LLM based on model name (currently supports OpenAI)
-      this.llm = createLLM(config.model || 'gpt-4o-mini', config.apiKey);
+      // Create LLM based on model name
+      // Default to Anthropic Claude Sonnet 3.5 if unspecified
+      this.llm = createLLM(config.model || 'claude-3-5-sonnet-20241022', config.apiKey);
     }
     
-    // Trust parameter handling can be added later if needed
+    // Trust parameter handling
+    const trustLevel = (typeof config.trust === 'string') ? config.trust : undefined;
+    const tl = (trustLevel === 'open' || trustLevel === 'careful' || trustLevel === 'strict') ? trustLevel as any : undefined;
+    const finalTrust = tl || getDefaultTrustLevel();
+    this._trust = createTrustAgent(finalTrust);
   }
 
   /**
@@ -151,53 +203,63 @@ export class Agent {
    */
   async input(prompt: string, maxIterations?: number): Promise<string> {
     const iterations = maxIterations || this.maxIterations;
-    
+
     // Record the input in history
     this.history.addInput(prompt);
-    
-    // Initialize conversation with system prompt and user input
-    const messages: Message[] = [
-      { role: 'system', content: this.systemPrompt },
-      { role: 'user', content: prompt }
-    ];
-    
+
+    this.console.print(`INPUT: ${prompt.slice(0, 100)}...`);
+
+    // Lazy-init persistent conversation
+    if (!this.messages) {
+      this.messages = [{ role: 'system', content: this.systemPrompt }];
+    }
+
+    // Add user message
+    this.messages.push({ role: 'user', content: prompt });
+    this.lastUserPrompt = prompt;
+
     // Convert tools to OpenAI-compatible function schemas
     const toolSchemas = this.tools.map(tool => tool.toFunctionSchema());
-    
+
     let finalResponse = '';
-    
+
     // Main execution loop - allows for multiple rounds of tool calling
     for (let i = 0; i < iterations; i++) {
+      this.currentIteration = i + 1;
       // Call LLM with current conversation and available tools
-      const llmResponse = await this.llm.complete(messages, toolSchemas);
-      
+      const reqStart = Date.now();
+      this.console.print(`→ LLM Request (${(this as any).llm?.model || 'llm'})`);
+      const llmResponse = await this.llm.complete(this.messages, toolSchemas);
+      const reqMs = Date.now() - reqStart;
+      this.console.print(`← LLM Response (${reqMs}ms)`);
+
       // Record the LLM response in history
       this.history.addLLMResponse(llmResponse);
-      
+
       // Add assistant's response to the conversation
       if (llmResponse.content || llmResponse.toolCalls.length > 0) {
         const assistantMessage: Message = {
           role: 'assistant',
           content: llmResponse.content || '',
         };
-        
+
         // Include tool calls in the message if present
         if (llmResponse.toolCalls.length > 0) {
           assistantMessage.tool_calls = llmResponse.toolCalls;
         }
-        
-        messages.push(assistantMessage);
+
+        this.messages.push(assistantMessage);
       }
-      
+
       // Process tool calls if the LLM requested any
       if (llmResponse.toolCalls.length > 0) {
         // Execute all tool calls in parallel for efficiency
         const toolResults = await this.executeToolCalls(llmResponse.toolCalls);
-        
+
         // Add tool results back to the conversation
         // This allows the LLM to see the results and continue reasoning
         for (const result of toolResults) {
-          messages.push({
+          this.messages.push({
             role: 'tool',
             content: JSON.stringify(result.result),
             tool_call_id: result.callId,
@@ -209,10 +271,12 @@ export class Agent {
         break;
       }
     }
-    
+
     // Record the final output in history
     this.history.addOutput(finalResponse);
-    
+
+    this.console.print(`✓ Complete`);
+
     return finalResponse;
   }
 
@@ -274,15 +338,51 @@ export class Agent {
     }
     
     try {
+      // Prepare xray context before execution
+      const previousTools = this.trace.map(t => t.tool_name);
+      injectXrayContext(
+        this,
+        this.lastUserPrompt || '',
+        this.messages || [],
+        this.currentIteration,
+        previousTools
+      );
+      // If debugger enabled and tool is marked as @xray, pause before execution
+      if (this.debugEnabled && (tool as any).xray) {
+        const maybeArgs = await this.pauseAtBreakpoint(tool, args);
+        if (maybeArgs && maybeArgs.__skip__) {
+          const result: ToolResult = { status: 'success', result: '[debugger: skipped]' };
+          this.history.addToolCall(name, args, result, callId);
+          return result;
+        }
+        if (maybeArgs) args = maybeArgs;
+      }
       // Execute the tool with provided arguments
+      const t0 = Date.now();
       const output = await tool.run(args);
       const result: ToolResult = {
         status: 'success',
         result: output,
       };
-      
+
       // Record successful tool call in history
       this.history.addToolCall(name, args, result, callId);
+      const dt = Date.now() - t0;
+      // Append to in-memory trace (for potential xray.trace usage)
+      this.trace.push({ tool_name: name, timing: dt, status: 'success' });
+      // Only print rich xray details when tool is @xray or in debug mode
+      if ((tool as any).xray || this.debugEnabled) {
+        this.console.printXray(name, args, output, dt, {
+          agent: this.name,
+          iteration: this.currentIteration,
+          userPrompt: this.lastUserPrompt || undefined,
+        });
+      } else {
+        // Concise output
+        const rs = String(output);
+        const preview = rs.length > 120 ? rs.slice(0, 120) + '...' : rs;
+        this.console.print(`← Result (${(dt/1000).toFixed(dt < 100 ? 4 : 1)}s): ${preview}`);
+      }
       return result;
     } catch (error) {
       // Handle tool execution errors gracefully
@@ -290,12 +390,68 @@ export class Agent {
         status: 'error',
         error: error instanceof Error ? error.message : String(error),
       };
-      
+
       // Record the error in history
       this.history.addToolCall(name, args, result, callId);
+      this.trace.push({ tool_name: name, timing: 0, status: 'error' });
+      this.console.print(`✗ Tool error in ${name}: ${result.error}`);
       return result;
+    } finally {
+      // Always clear xray context after each tool execution
+      clearXrayContext();
     }
   }
+
+  /** Pause at @xray breakpoint with basic interactive menu */
+  private async pauseAtBreakpoint(tool: Tool, args: any): Promise<any> {
+    this.console.print(`@xray breakpoint: ${tool.name}`);
+    this.console.print(`arguments: ${JSON.stringify(args)}`);
+    const rl = readline.createInterface({ input: process.stdin, output: process.stderr });
+    const ask = (q: string) => new Promise<string>(res => rl.question(q, ans => res(ans)));
+    const cmd = (await ask('debug> [c]ontinue, [e]dit args, [s]kip: ')).trim().toLowerCase();
+    if (cmd === 'e' || cmd === 'edit') {
+      const text = await ask('args JSON> ');
+      rl.close();
+      try {
+        const parsed = JSON.parse(text);
+        return parsed;
+      } catch (e) {
+        this.console.print(`✗ Invalid JSON, continuing with original args`);
+        return args;
+      }
+    }
+    if (cmd === 's' || cmd === 'skip') {
+      rl.close();
+      return { __skip__: true };
+    }
+    rl.close();
+    return args;
+  }
+
+  /** Start a debugging session. If prompt provided, runs single session. */
+  async autoDebug(prompt?: string): Promise<string | void> {
+    this.debugEnabled = true;
+    if (prompt) {
+      const res = await this.input(prompt);
+      this.debugEnabled = false;
+      return res;
+    }
+    // Interactive loop
+    const rl = readline.createInterface({ input: process.stdin, output: process.stderr });
+    const ask = (q: string) => new Promise<string>(res => rl.question(q, ans => res(ans)));
+    this.console.print('Entering interactive debug mode. Press Enter on empty line to exit.');
+    while (true) {
+      const line = await ask('task> ');
+      if (!line.trim()) break;
+      try { await this.input(line.trim()); } catch (e) { this.console.print(`✗ Error: ${String(e)}`); }
+    }
+    rl.close();
+    this.debugEnabled = false;
+    return;
+  }
+
+  /** Get trust configuration */
+  getTrust() { return this._trust; }
 
   /**
    * Get the complete conversation history
@@ -350,6 +506,13 @@ export class Agent {
   }
 
   /**
+   * List tool names for quick inspection
+   */
+  listTools(): string[] {
+    return this.tools.map(t => t.name);
+  }
+
+  /**
    * Dynamically add a new tool to the agent
    * 
    * @param tool - Tool to add (function, class instance, or Tool object)
@@ -399,5 +562,21 @@ export class Agent {
       return true;
     }
     return false;
+  }
+
+  /**
+   * Execute a single tool by name with arguments (manual invocation)
+   */
+  async executeTool(name: string, args: Record<string, any> = {}): Promise<ToolResult> {
+    const callId = `manual_${name}_${Date.now()}`;
+    return this.executeToolCall(name, args, callId);
+  }
+
+  /**
+   * Reset the conversation, keeping tools and configuration intact
+   */
+  resetConversation(): void {
+    this.messages = null;
+    this.history.clear();
   }
 }

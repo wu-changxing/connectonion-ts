@@ -9,16 +9,18 @@ export class OpenAILLM implements LLM {
   private client: OpenAI;
   private model: string;
 
-  constructor(apiKey?: string, model: string = 'gpt-4o-mini') {
-    const key = apiKey || process.env.OPENAI_API_KEY;
-    
+  constructor(apiKey?: string, model: string = 'o4-mini', options?: { baseURL?: string }) {
+    const key = apiKey || process.env.OPENAI_API_KEY || process.env.OPENONION_API_KEY;
     if (!key) {
       throw new Error(
-        'OpenAI API key required. Set OPENAI_API_KEY environment variable or pass apiKey parameter.'
+        'OpenAI-compatible API key required. Set OPENAI_API_KEY (or OPENONION_API_KEY) or pass apiKey.'
       );
     }
 
-    this.client = new OpenAI({ apiKey: key });
+    // Allow overriding base URL to support managed/proxy endpoints
+    const envBase = process.env.OPENAI_BASE_URL || process.env.OPENONION_BASE_URL;
+    const baseURL = options?.baseURL || envBase;
+    this.client = new OpenAI(baseURL ? { apiKey: key, baseURL } : { apiKey: key });
     this.model = model;
   }
 
@@ -88,5 +90,48 @@ export class OpenAILLM implements LLM {
 
       return converted;
     });
+  }
+
+  async structuredComplete<T = any>(messages: Message[], schema: any): Promise<T> {
+    // Prefer responses.parse if available in the SDK
+    const anyClient: any = this.client as any;
+    try {
+      if (anyClient.responses && typeof anyClient.responses.parse === 'function') {
+        const response = await anyClient.responses.parse({
+          model: this.model,
+          input: this.convertMessages(messages),
+          // Not all SDKs accept arbitrary objects; if it errors, fallback below.
+          text_format: schema,
+        });
+        // Try common shapes for parsed output
+        if (response?.output_parsed) return response.output_parsed as T;
+        if (response?.parsed) return response.parsed as T;
+      }
+    } catch (_err) {
+      // Fall through to chat JSON fallback
+    }
+
+    // Fallback: ask the model to return only JSON matching the schema
+    const system = `You are a JSON generator. Return ONLY valid minified JSON matching this schema: ${JSON.stringify(
+      schema
+    )}. No prose.`;
+    const openAIMessages = this.convertMessages([
+      { role: 'system', content: system },
+      ...messages,
+    ]);
+    const res = await this.client.chat.completions.create({
+      model: this.model,
+      messages: openAIMessages,
+      temperature: 0,
+    });
+    const content = res.choices?.[0]?.message?.content || '{}';
+    try {
+      return JSON.parse(content) as T;
+    } catch (e) {
+      // Try to extract JSON substring if the model added extra text
+      const match = content.match(/\{[\s\S]*\}/);
+      if (match) return JSON.parse(match[0]) as T;
+      throw new Error(`Failed to parse structured JSON: ${String(e)} | content=${content}`);
+    }
   }
 }

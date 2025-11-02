@@ -4,19 +4,64 @@
 
 import { LLM } from '../types';
 import { OpenAILLM } from './openai';
+import { AnthropicLLM } from './anthropic';
+import { NoopLLM } from './noop';
+import { GeminiLLM } from './gemini';
 
 export { OpenAILLM } from './openai';
+export { AnthropicLLM } from './anthropic';
+export { GeminiLLM } from './gemini';
 
 /**
  * Create an LLM instance based on the model name
  */
-export function createLLM(model: string = 'gpt-4o-mini', apiKey?: string): LLM {
-  // For now, we only support OpenAI models
-  // In the future, we can add support for Anthropic, Google, etc.
-  if (model.startsWith('gpt-') || model.startsWith('o1-')) {
-    return new OpenAILLM(apiKey, model);
+export function createLLM(model: string = 'claude-3-5-sonnet-20241022', apiKey?: string): LLM {
+  // Route based on model like the Python SDK
+  const isCo = model.startsWith('co/');
+  const m = isCo ? model.slice(3) : model;
+
+  // co/ models use an OpenAI-compatible endpoint via baseURL
+  if (isCo) {
+    const baseURL = process.env.OPENONION_BASE_URL
+      || (process.env.OPENONION_DEV || process.env.ENVIRONMENT === 'development' ? 'http://localhost:8000/v1' : 'https://oo.openonion.ai/v1');
+    try {
+      return new OpenAILLM(apiKey, m, { baseURL });
+    } catch (err) {
+      return new NoopLLM('OpenOnion (co/) model requires OPENONION_API_KEY. Run `co auth` or set env.');
+    }
   }
-  
-  // Default to OpenAI
-  return new OpenAILLM(apiKey, model);
+
+  // Anthropic (Claude) models
+  if (m.startsWith('claude')) {
+    try {
+      return new AnthropicLLM(apiKey, m);
+    } catch (err) {
+      return new NoopLLM('Anthropic requires ANTHROPIC_API_KEY and @anthropic-ai/sdk installed.');
+    }
+  }
+
+  // OpenAI models
+  if (m.startsWith('gpt-') || m.startsWith('o')) {
+    try {
+      return new OpenAILLM(apiKey, m);
+    } catch (err) {
+      return new NoopLLM('OpenAI requires OPENAI_API_KEY set or pass apiKey.');
+    }
+  }
+
+  // Gemini models
+  if (m.startsWith('gemini')) {
+    try {
+      return new GeminiLLM(apiKey, m);
+    } catch (err) {
+      return new NoopLLM('Gemini requires GEMINI_API_KEY/GOOGLE_API_KEY and @google/generative-ai installed.');
+    }
+  }
+
+  // Default to Anthropic preference; fallback to OpenAI if fails
+  try {
+    return new AnthropicLLM(apiKey, 'claude-3-5-sonnet-20241022');
+  } catch {
+    return new NoopLLM('No supported LLM configured. Provide model/apiKey or set env.');
+  }
 }

@@ -23,6 +23,10 @@ class MockLLM implements LLM {
     this.callCount++;
     return response;
   }
+
+  async structuredComplete<T = any>(_messages: Message[], _schema: any): Promise<T> {
+    throw new Error('Not implemented in MockLLM');
+  }
 }
 
 describe('Agent', () => {
