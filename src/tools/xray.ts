@@ -87,3 +87,37 @@ export function isXrayEnabled(func: any): boolean {
 export function getXrayContext(): XrayContext {
   return xrayContext;
 }
+
+/**
+ * Print a visual trace of tool execution using the current xray context.
+ * Throws if no active context is available.
+ */
+export function trace(): void {
+  if (!xrayContext.agent) {
+    throw new Error('xray.trace(): no active agent context');
+  }
+  const agent: any = xrayContext.agent;
+  const task = xrayContext.task || '';
+  const history: Array<any> = agent.trace || [];
+  if (!Array.isArray(history) || history.length === 0) {
+    throw new Error('xray.trace(): no tool execution history');
+  }
+
+  const head = `Task: ${task}`;
+  // Emit compact, readable lines similar to Python output
+  const lines: string[] = [head, ''];
+  history.forEach((h, idx) => {
+    const ms = typeof h.timing === 'number' ? h.timing : 0;
+    const timeStr = ms < 100 ? `${(ms / 1000).toFixed(4)}s` : `${(ms / 1000).toFixed(1)}s`;
+    const argsPreview = JSON.stringify(h.args ?? {});
+    const shortArgs = argsPreview.length > 120 ? argsPreview.slice(0, 120) + '...' : argsPreview;
+    const resultStr = (h.result === undefined || h.result === null) ? '' : String(h.result);
+    const shortRes = resultStr.length > 120 ? resultStr.slice(0, 120) + '...' : resultStr;
+    const status = h.status === 'error' ? 'ERR ✗' : `• ${timeStr}`;
+    lines.push(`[${idx + 1}] ${status}  ${h.tool_name}(${shortArgs})`);
+    if (shortRes) lines.push(`      OUT ← ${shortRes}`);
+  });
+  lines.push('');
+  // Print to stderr-style to match Console behavior
+  console.error(lines.join('\n'));
+}
