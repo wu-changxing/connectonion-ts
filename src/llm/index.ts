@@ -1,5 +1,11 @@
 /**
- * LLM factory and exports for ConnectOnion TypeScript SDK
+ * @purpose LLM factory that routes model names to appropriate providers (Anthropic, OpenAI, Gemini, OpenOnion) with graceful fallback to NoopLLM
+ * @llm-note
+ *   Dependencies: imports from [src/types.ts, src/llm/openai.ts, src/llm/anthropic.ts, src/llm/gemini.ts, src/llm/noop.ts] | imported by [src/core/agent.ts, src/index.ts] | tested indirectly via agent tests
+ *   Data flow: receives model string + optional apiKey → pattern matches model name (co/*, claude*, gpt-*, o*, gemini*) → instantiates provider → catches errors and returns NoopLLM with descriptive message
+ *   State/Effects: no state, pure factory function | reads env OPENONION_DEV/ENVIRONMENT for baseURL selection
+ *   Integration: exports createLLM(model, apiKey) + all provider classes | default model 'claude-3-5-sonnet-20241022' | co/* models use OpenOnion proxy (localhost:8000 dev, oo.openonion.ai prod)
+ *   ⚠️ try-catch around each provider instantiation prevents crashes from missing API keys or SDKs
  */
 
 import { LLM } from '../types';

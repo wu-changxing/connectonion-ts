@@ -1,5 +1,10 @@
 /**
- * Minimal console with optional file logging to mirror Python SDK UX.
+ * @purpose Dual-output logging system (terminal + optional file) that mirrors Python SDK UX with colored terminal output and @xray tool tracing
+ * @llm-note
+ *   Dependencies: imports from [node:fs, node:path] | imported by [src/core/agent.ts, src/tools/tool-executor.ts] | tested by agent tests
+ *   Data flow: receives log messages/xray traces → formats with timestamps/colors → writes to stderr + optional file (.co/logs/{name}.log)
+ *   State/Effects: writes to stderr via console.error | appends to logFile if configured | creates log directories with fs.mkdirSync
+ *   Integration: exposes print(message), printXray(toolName, args, result, timing, context) | used by Agent for all output | ANSI color support via isTTY detection
  */
 
 import * as fs from 'fs';

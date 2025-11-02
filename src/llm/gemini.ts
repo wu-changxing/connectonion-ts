@@ -1,8 +1,12 @@
 /**
- * Gemini LLM implementation (minimal) for ConnectOnion TypeScript SDK
- *
- * Uses dynamic import of @google/generative-ai to keep dependency optional.
- * Tool-calling support is basic; structuredComplete uses JSON prompting fallback.
+ * @purpose Google Gemini provider with function calling support and JSON prompting fallback for structured output
+ * @llm-note
+ *   Dependencies: imports from [@google/generative-ai via dynamic require, src/types.ts] | imported by [src/llm/index.ts, src/index.ts] | tested by [tests/e2e/realProviders.test.ts]
+ *   Data flow: receives Message[] + FunctionSchema[] → converts to Gemini format (contents array, systemInstruction separate) → calls client.generateContent() → parses functionCall parts → returns LLMResponse
+ *   State/Effects: makes HTTP POST to Google Gemini API | reads env GEMINI_API_KEY or GOOGLE_API_KEY | no persistent state | lazy-loads SDK to keep optional
+ *   Integration: implements LLM interface | exposes complete(), structuredComplete() | default model 'gemini-1.5-flash' | converts OpenAI-style messages to Gemini contents format
+ *   Performance: direct API call, no caching | tool support via functionDeclarations
+ *   ⚠️ structuredComplete uses JSON prompting fallback (not native structured output API)
  */
 
 import { LLM, LLMResponse, Message, FunctionSchema, ToolCall } from '../types';

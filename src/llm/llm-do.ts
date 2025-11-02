@@ -1,7 +1,12 @@
 /**
- * llmDo - simple one-shot completion helper (Python parity with llm_do)
- *
- * Example:
+ * @purpose Simple one-shot completion helper for quick LLM queries without creating an Agent (Python parity with llm_do)
+ * @llm-note
+ *   Dependencies: imports from [./index (createLLM), ../types] | imported by [src/index.ts] | tested by manual examples
+ *   Data flow: receives prompt: string + options → creates messages array with optional system → calls createLLM(model).complete(messages) → returns response.content string
+ *   State/Effects: makes LLM API call via provider | no persistent state | returns text content only (discards tool_calls)
+ *   Integration: exposes llmDo(prompt, options?) where options: {model?, apiKey?, system?, temperature?} | delegates to createLLM factory | default model from createLLM ('claude-3-5-sonnet-20241022')
+ *   Performance: creates new LLM instance per call (no caching) | single API request
+ * @example
  *   const text = await llmDo('Hello', { model: 'gpt-4o-mini' })
  */
 import { createLLM } from './index';

@@ -1,14 +1,12 @@
 /**
- * Tool conversion utilities for ConnectOnion TypeScript SDK
- * 
- * This module provides utilities to convert regular TypeScript functions
- * and class methods into Tool objects that can be used by agents.
- * 
- * The tool system is designed to be flexible and automatic:
- * - Functions are converted to tools automatically
- * - Class methods are extracted and converted
- * - Type information is preserved where possible
- * - Docstrings become tool descriptions
+ * @purpose Auto-convert TypeScript functions and class methods into Agent-compatible Tool objects with schema generation
+ * @llm-note
+ *   Dependencies: imports from [../types] | imported by [src/core/agent.ts, src/index.ts] | tested by [tests/agent.test.ts, examples/test-migrations.ts]
+ *   Data flow: receives func: Function or class instance → inspects with func.toString() → extracts name/JSDoc/params via regex → maps types via TYPE_MAP → returns Tool with run(), toFunctionSchema()
+ *   State/Effects: no state or side effects | pure transformation functions | regex parsing of function source
+ *   Integration: exposes processTools(tools), createToolFromFunction(func), extractMethodsFromInstance(instance), isClassInstance(obj), xray(func) | used by Agent constructor to auto-convert tools | preserves @xray decorator flag
+ *   Performance: synchronous regex parsing | TYPE_MAP provides O(1) type lookups | no caching (recreates on each call)
+ *   Errors: skips methods without proper signatures | skips private methods (starting with _) | defaults to 'string' type when annotation missing | wraps methods with functools-like context preservation
  */
 
 import { Tool } from '../types';

@@ -1,6 +1,11 @@
 /**
- * Trust system hooks to mirror Python SDK behavior at a high level.
- * Levels: open | careful | strict
+ * @purpose Trust-level configuration system (open/careful/strict) with environment-based defaults and prompt templates for future trust agent integration
+ * @llm-note
+ *   Dependencies: no imports (leaf node) | imported by [src/core/agent.ts] | no tests yet (configuration layer)
+ *   Data flow: receives trust level string or object → returns trust config with level + prompt → used by Agent constructor
+ *   State/Effects: reads env CONNECTONION_TRUST | no state mutations | pure functions
+ *   Integration: exposes createTrustAgent(trust, apiKey, model), getDefaultTrustLevel(), getTrustPrompt(level), TrustLevel type | default level: 'careful' | prompts define trust agent behavior for future policy evaluation
+ *   ⚠️ Trust agent not yet implemented - returns config object only | future: could return Agent instance for runtime policy checks
  */
 
 export type TrustLevel = 'open' | 'careful' | 'strict';

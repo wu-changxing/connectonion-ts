@@ -1,19 +1,12 @@
 /**
- * Anthropic LLM implementation for ConnectOnion TypeScript SDK
- *
- * Notes:
- * - Uses dynamic require to avoid hard dependency if the SDK isn't installed.
- * - Converts OpenAI-style messages and tools into Anthropic format.
- *
- * Anthropic Messages API minimum requirements:
- * - model: API model name to call (e.g., 'claude-3-5-sonnet-20241022')
- * - max_tokens: hard maximum tokens to generate (Claude may stop earlier). This is a hard cap
- *   and may cut off mid‑word/sentence when reached.
- * - messages: an array of input messages (must alternate user/assistant; the first must be 'user').
- *   System prompt is optional and provided as top-level 'system'.
- * Optional common params:
- * - system: system prompt string
- * - temperature: variability in responses (we default to 0 for determinism)
+ * @purpose Anthropic Claude provider (default SDK LLM) with native tool support and message format conversion from OpenAI-style to Claude API
+ * @llm-note
+ *   Dependencies: imports from [@anthropic-ai/sdk via dynamic require, src/types.ts] | imported by [src/llm/index.ts, src/index.ts] | tested by [tests/e2e/realProviders.test.ts]
+ *   Data flow: receives Message[] + FunctionSchema[] → converts to Anthropic format (system separate, user/assistant alternating) → calls client.messages.create() → parses tool_use blocks → returns LLMResponse
+ *   State/Effects: makes HTTP POST to Anthropic API | reads env ANTHROPIC_API_KEY | no persistent state | lazy-loads SDK to keep optional
+ *   Integration: implements LLM interface | exposes complete(), structuredComplete() | default model 'claude-3-5-sonnet-20241022' | default max_tokens: 8192, temperature: 0 for determinism
+ *   Performance: direct API call, no caching | native tool support via tool_use content blocks
+ *   ⚠️ Anthropic requires max_tokens (hard cap may cut off mid-sentence) | messages must alternate user/assistant, first must be user
  */
 
 import { LLM, LLMResponse, Message, FunctionSchema, ToolCall } from '../types';

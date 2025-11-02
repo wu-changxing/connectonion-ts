@@ -1,8 +1,12 @@
 /**
- * Xray debugging context for ConnectOnion TypeScript SDK
- *
- * Migrated from Python xray.py (simplified version)
- * Provides context injection for @xray decorated tools
+ * @purpose Debugging context injection system for @xray decorated tools (migrated from Python xray.py - simplified version)
+ * @llm-note
+ *   Dependencies: none (leaf node) | imported by [src/core/agent.ts, src/index.ts] | tested by [examples/test-migrations.ts]
+ *   Data flow: receives from Agent → injectXrayContext(agent, userPrompt, messages, iteration, previousTools) → stores in module-scoped xrayContext → tools access via getXrayContext() → clearXrayContext() after execution
+ *   State/Effects: mutates module-scoped xrayContext object | no file I/O | context cleared after tool execution to prevent leakage
+ *   Integration: exposes injectXrayContext(), clearXrayContext(), isXrayEnabled(func), getXrayContext(), trace(), XrayContext interface | used by Agent before/after tool execution | trace() displays visual execution history
+ *   Performance: lightweight in-memory context storage | trace() uses console.error for stderr-style output
+ *   Errors: trace() throws if no active agent context or empty execution history
  */
 
 /**

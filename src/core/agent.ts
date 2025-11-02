@@ -1,8 +1,12 @@
 /**
- * Core Agent implementation for ConnectOnion TypeScript SDK
- * 
- * The Agent class is the main orchestrator that combines LLM capabilities
- * with tool execution to create powerful AI agents that can perform actions.
+ * @purpose Main Agent orchestrator that combines LLM reasoning with parallel tool execution, multi-turn conversations, and interactive debugging
+ * @llm-note
+ *   Dependencies: imports from [src/types, src/llm/index, src/console, src/tools/tool-utils, src/trust/index, node:fs, node:dotenv, node:readline] | imported by [src/index.ts] | tested by [tests/agent.test.ts, tests/e2e/*.test.ts]
+ *   Data flow: receives user prompt → lazy-init messages array (system + user) → LLM loop (max 10 iterations) → parallel tool execution via Promise.all → adds tool results to messages → repeats until no tool calls → returns final text response
+ *   State/Effects: mutates this.messages (persistent conversation state) | writes to Console (stderr + optional file) | reads systemPrompt from file if path provided | reads env for API keys/config
+ *   Integration: exposes input(prompt, maxIterations?), resetConversation(), addTool(), removeTool(), getTools(), executeTool(), autoDebug(), getSession(), getTrust() | uses createLLM() factory | tool execution at line 285-302 (parallel) | main loop at line 221-267
+ *   Performance: parallel tool execution via Promise.all | no caching | tool map for O(1) lookup | max 10 iterations default (configurable)
+ *   ⚠️ messages persist across input() calls until resetConversation() | @xray tools pause execution in debug mode | tool errors returned to LLM for retry
  */
 
 import { 
@@ -13,7 +17,6 @@ import {
   ToolResult
 } from '../types';
 import { createLLM } from '../llm';
-import { History } from '../history';
 import { Console } from '../console';
 import { processTools } from '../tools/tool-utils';
 import { injectXrayContext, clearXrayContext } from '../tools/xray';
@@ -22,7 +25,7 @@ import * as fs from 'fs';
 import * as readline from 'readline';
 import { createTrustAgent, getDefaultTrustLevel } from '../trust';
 
-// Load environment variables from .env file
+// Load environment variables from local .env only; if not present, env stays empty
 dotenv.config();
 
 /**
@@ -31,7 +34,7 @@ dotenv.config();
  * An Agent combines:
  * - LLM for intelligence and reasoning
  * - Tools for taking actions
- * - History for behavior tracking
+ * - In-memory session (messages + trace)
  * - System prompts for personality
  * 
  * @example
@@ -70,8 +73,8 @@ export class Agent {
   /** LLM instance for generating responses */
   private llm: LLM;
   
-  /** History tracker for recording all agent behaviors */
-  private history: History;
+  /** Session interface aligned with Python: messages + trace */
+  // messages are tracked in this.messages; trace in this.trace
 
   /** Persistent conversation messages for multi-turn interactions */
   private messages: Message[] | null = null;
@@ -86,7 +89,7 @@ export class Agent {
   /** Trust configuration object */
   private _trust: any = null;
   /** In-memory trace entries for xray-style introspection */
-  private trace: Array<{ tool_name: string; timing: number; status: string } > = [];
+  private trace: Array<{ tool_name: string; timing: number; status: string; args?: any; result?: any; iteration?: number }> = [];
   /** Last user prompt, for xray context */
   private lastUserPrompt: string | null = null;
 
@@ -139,9 +142,7 @@ export class Agent {
     // Create a map for O(1) tool lookup by name
     this.toolMap = new Map(this.tools.map(tool => [tool.name, tool]));
     
-    // Initialize behavior history tracking
-    // All behaviors are saved to ~/.connectonion/agents/{name}/behavior.json
-    this.history = new History(this.name);
+    // No persistent history: align with Python current_session semantics
 
     // Setup console logging
     let logFile: string | undefined;
@@ -204,8 +205,7 @@ export class Agent {
   async input(prompt: string, maxIterations?: number): Promise<string> {
     const iterations = maxIterations || this.maxIterations;
 
-    // Record the input in history
-    this.history.addInput(prompt);
+    // Record input implicitly via messages; no persistent history
 
     this.console.print(`INPUT: ${prompt.slice(0, 100)}...`);
 
@@ -233,8 +233,7 @@ export class Agent {
       const reqMs = Date.now() - reqStart;
       this.console.print(`← LLM Response (${reqMs}ms)`);
 
-      // Record the LLM response in history
-      this.history.addLLMResponse(llmResponse);
+      // No persistent history; record via messages only
 
       // Add assistant's response to the conversation
       if (llmResponse.content || llmResponse.toolCalls.length > 0) {
@@ -271,9 +270,6 @@ export class Agent {
         break;
       }
     }
-
-    // Record the final output in history
-    this.history.addOutput(finalResponse);
 
     this.console.print(`✓ Complete`);
 
@@ -331,73 +327,45 @@ export class Agent {
         status: 'not_found',
         error: `Tool ${name} not found`,
       };
-      
-      // Record the failed tool call in history
-      this.history.addToolCall(name, args, result, callId);
       return result;
     }
     
+    // Prepare xray context before execution
+    const previousTools = this.trace.map(t => t.tool_name);
+    injectXrayContext(
+      this,
+      this.lastUserPrompt || '',
+      this.messages || [],
+      this.currentIteration,
+      previousTools
+    );
     try {
-      // Prepare xray context before execution
-      const previousTools = this.trace.map(t => t.tool_name);
-      injectXrayContext(
-        this,
-        this.lastUserPrompt || '',
-        this.messages || [],
-        this.currentIteration,
-        previousTools
-      );
       // If debugger enabled and tool is marked as @xray, pause before execution
       if (this.debugEnabled && (tool as any).xray) {
         const maybeArgs = await this.pauseAtBreakpoint(tool, args);
-        if (maybeArgs && maybeArgs.__skip__) {
+        if (maybeArgs && (maybeArgs as any).__skip__) {
           const result: ToolResult = { status: 'success', result: '[debugger: skipped]' };
-          this.history.addToolCall(name, args, result, callId);
           return result;
         }
         if (maybeArgs) args = maybeArgs;
       }
-      // Execute the tool with provided arguments
+      // Execute the tool with provided arguments (no catch: let errors surface)
       const t0 = Date.now();
       const output = await tool.run(args);
-      const result: ToolResult = {
-        status: 'success',
-        result: output,
-      };
-
-      // Record successful tool call in history
-      this.history.addToolCall(name, args, result, callId);
+      const result: ToolResult = { status: 'success', result: output };
       const dt = Date.now() - t0;
-      // Append to in-memory trace (for potential xray.trace usage)
-      this.trace.push({ tool_name: name, timing: dt, status: 'success' });
-      // Only print rich xray details when tool is @xray or in debug mode
+      this.trace.push({ tool_name: name, timing: dt, status: 'success', args, result: output, iteration: this.currentIteration });
       if ((tool as any).xray || this.debugEnabled) {
-        this.console.printXray(name, args, output, dt, {
-          agent: this.name,
-          iteration: this.currentIteration,
-          userPrompt: this.lastUserPrompt || undefined,
-        });
+        this.console.printXray(name, args, output, dt, { agent: this.name, iteration: this.currentIteration, userPrompt: this.lastUserPrompt || undefined });
       } else {
-        // Concise output
         const rs = String(output);
         const preview = rs.length > 120 ? rs.slice(0, 120) + '...' : rs;
         this.console.print(`← Result (${(dt/1000).toFixed(dt < 100 ? 4 : 1)}s): ${preview}`);
       }
-      return result;
-    } catch (error) {
-      // Handle tool execution errors gracefully
-      const result: ToolResult = {
-        status: 'error',
-        error: error instanceof Error ? error.message : String(error),
-      };
-
-      // Record the error in history
-      this.history.addToolCall(name, args, result, callId);
-      this.trace.push({ tool_name: name, timing: 0, status: 'error' });
-      this.console.print(`✗ Tool error in ${name}: ${result.error}`);
+      // Silence unused var warning by referencing callId in a no-op
+      void callId;
       return result;
     } finally {
-      // Always clear xray context after each tool execution
       clearXrayContext();
     }
   }
@@ -454,37 +422,23 @@ export class Agent {
   getTrust() { return this._trust; }
 
   /**
-   * Get the complete conversation history
-   * 
-   * @returns Array of all behavior entries
-   * 
-   * @example
-   * ```typescript
-   * const history = agent.getHistory();
-   * console.log(`Total interactions: ${history.length}`);
-   * 
-   * // Filter for tool calls
-   * const toolCalls = history.filter(h => h.type === 'tool_call');
-   * ```
+   * Get the current in-memory session (messages + tool execution trace)
    */
-  getHistory() {
-    return this.history.getBehaviors();
+  getSession() {
+    return {
+      messages: this.messages || [],
+      trace: this.trace,
+      iteration: this.currentIteration,
+      user_prompt: this.lastUserPrompt || ''
+    };
   }
 
   /**
-   * Clear the conversation history
-   * 
-   * This removes all recorded behaviors for this agent.
-   * Use with caution as this action cannot be undone.
-   * 
-   * @example
-   * ```typescript
-   * agent.clearHistory();
-   * console.log('History cleared');
-   * ```
+   * Clear the in-memory tool execution trace for this session
    */
   clearHistory() {
-    this.history.clear();
+    // No persistent history; clear in-memory trace only
+    this.trace = [];
   }
 
   /**
@@ -577,6 +531,6 @@ export class Agent {
    */
   resetConversation(): void {
     this.messages = null;
-    this.history.clear();
+    this.trace = [];
   }
 }

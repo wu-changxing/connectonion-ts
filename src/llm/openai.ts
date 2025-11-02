@@ -1,5 +1,11 @@
 /**
- * OpenAI LLM implementation for ConnectOnion TypeScript SDK
+ * @purpose OpenAI LLM provider with support for GPT models, O-series models, and OpenOnion managed keys via configurable baseURL
+ * @llm-note
+ *   Dependencies: imports from [openai npm package, src/types.ts] | imported by [src/llm/index.ts, src/index.ts] | tested by [tests/e2e/realProviders.test.ts]
+ *   Data flow: receives Message[] + FunctionSchema[] → converts to OpenAI format → calls client.chat.completions.create() → parses tool_calls → returns LLMResponse
+ *   State/Effects: makes HTTP POST to OpenAI API (or baseURL override) | reads env OPENAI_API_KEY/OPENONION_API_KEY | no persistent state
+ *   Integration: implements LLM interface | exposes complete(), structuredComplete() | default model 'o4-mini' | supports baseURL override for co/* models via createLLM factory
+ *   Performance: direct API call, no caching | tool_choice: 'auto' for parallel tool execution
  */
 
 import OpenAI from 'openai';

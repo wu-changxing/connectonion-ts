@@ -1,11 +1,14 @@
 /**
- * ConnectOnion TypeScript SDK
- * A framework for creating AI agents with behavior tracking
+ * @purpose Public API entry point that exports all SDK components (Agent, LLM providers, tool utilities, trust system, types)
+ * @llm-note
+ *   Dependencies: imports from [src/core/agent, src/llm/*, src/tools/*, src/trust/*, src/types] | imported by external consumers | tested by all test files
+ *   Data flow: no runtime logic, pure re-exports → external code imports from here → provides unified API surface
+ *   State/Effects: no state or side effects | static exports only
+ *   Integration: exposes Agent, createLLM, all LLM providers (OpenAILLM, AnthropicLLM, GeminiLLM), tool utils (xray, processTools, etc), trust system, all types | single source of truth for SDK imports
  */
 
 export { Agent } from './core/agent';
 export { createLLM, OpenAILLM, AnthropicLLM, GeminiLLM } from './llm';
-export { History } from './history';
 export { 
   createToolFromFunction, 
   isClassInstance, 
@@ -13,7 +16,11 @@ export {
   processTools,
   xray,
 } from './tools/tool-utils';
+export { trace as xrayTrace } from './tools/xray';
+export { withReplay, xrayReplay, replay } from './tools/replay';
+export * from './tools/email';
 export * from './trust';
+export * from './trust/tools';
 
 export * from './types';
 export { llmDo } from './llm/llm-do';

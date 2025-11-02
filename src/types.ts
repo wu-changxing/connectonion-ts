@@ -1,8 +1,10 @@
 /**
- * Core type definitions for ConnectOnion TypeScript SDK
- * 
- * This file contains all the TypeScript interfaces and types used throughout
- * the SDK. These types provide compile-time safety and excellent IDE support.
+ * @purpose Core type definitions that provide compile-time safety and IDE support across the entire SDK
+ * @llm-note
+ *   Dependencies: none (leaf node) | imported by [src/core/agent.ts, src/llm/*.ts, src/tools/tool-utils.ts, src/index.ts] | tested by [tests/agent.test.ts]
+ *   Data flow: defines interfaces → used throughout codebase for type checking → no runtime data processing
+ *   State/Effects: pure type definitions, no side effects or state
+ *   Integration: exports all core interfaces (Tool, LLM, Agent, Message, FunctionSchema) | consumed by all modules | OpenAI-compatible message format
  */
 
 /**
@@ -98,18 +100,6 @@ export interface ToolResult {
   error?: string;
 }
 
-/**
- * Entry in the agent's behavior history
- * @interface BehaviorEntry
- */
-export interface BehaviorEntry {
-  /** ISO timestamp when this behavior occurred */
-  timestamp: string;
-  /** Type of behavior being recorded */
-  type: 'input' | 'llm_response' | 'tool_call' | 'output';
-  /** The actual data for this behavior */
-  data: any;
-}
 
 /**
  * Configuration options for creating an Agent
