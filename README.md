@@ -338,7 +338,7 @@ MIT © [OpenOnion Team](https://github.com/openonion)
 ## 🔗 Links
 
 - **[Python Version](https://github.com/openonion/connectonion)** - Original Python SDK
-- **[Discord Community](https://discord.gg/connectonion)** - Get help & share ideas
+- **[Discord Community](https://discord.gg/4xfD9k8AUF)** - Get help & share ideas
 - **[Blog](https://connectonion.com/blog)** - Tutorials and updates
 
 ## 🌟 Why TypeScript?

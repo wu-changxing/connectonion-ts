@@ -21,7 +21,7 @@ Build your first AI agent in **60 seconds** - we timed it!
 
 ```bash
 # Using npm
-npm install connectonion-ts
+npm install connectonion
 
 # Using yarn
 yarn add connectonion-ts
@@ -75,7 +75,7 @@ OPENAI_API_KEY=sk-your-api-key-here
 Create `src/my-agent.ts`:
 
 ```typescript
-import { Agent } from 'connectonion-ts';
+import { Agent } from 'connectonion';
 
 // Define a tool - any function becomes a tool!
 function greet(name: string): string {
@@ -283,7 +283,7 @@ const efficientAgent = new Agent({
 ### Pattern 1: Database Agent
 
 ```typescript
-import { Agent } from 'connectonion-ts';
+import { Agent } from 'connectonion';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -380,37 +380,17 @@ const agent = new Agent({
 });
 ```
 
-## Behavior Tracking
+## Session & Trace
 
-Every agent automatically tracks its behavior:
+Agents keep an in-memory session (messages + tool execution trace):
 
 ```typescript
-// All actions are saved to ~/.connectonion/agents/{name}/behavior.json
-const agent = new Agent({ name: 'tracked-agent' });
-
-// Use the agent
+const agent = new Agent({ name: 'runtime-session' });
 await agent.input('Hello!');
-
-// Access history programmatically
-const history = agent.getHistory();
-console.log(`Total interactions: ${history.length}`);
-
-// Filter specific events
-const toolCalls = history.filter(h => h.type === 'tool_call');
-const successful = toolCalls.filter(t => t.data.result.status === 'success');
-
-// Clear history when needed
+const { messages, trace } = agent.getSession();
+console.log(`Messages: ${messages.length}, tool steps: ${trace.length}`);
+// Clear the in-memory trace if needed
 agent.clearHistory();
-```
-
-### History Entry Types
-
-```typescript
-interface BehaviorEntry {
-  timestamp: string;  // ISO timestamp
-  type: 'input' | 'llm_response' | 'tool_call' | 'output';
-  data: any;  // The actual data for this event
-}
 ```
 
 ## Error Handling
@@ -481,5 +461,5 @@ The possibilities are endless! 🌟
 ---
 
 <p align="center">
-  <strong>Need help?</strong> Check our <a href="./troubleshooting.md">Troubleshooting Guide</a> or <a href="https://discord.gg/connectonion">join our Discord</a>
+  <strong>Need help?</strong> Check our <a href="./troubleshooting.md">Troubleshooting Guide</a> or <a href="https://discord.gg/4xfD9k8AUF">join our Discord</a>
 </p>
