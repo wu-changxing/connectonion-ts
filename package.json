@@ -28,17 +28,18 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/wu-changxing/connectonion-ts"
+    "url": "https://github.com/openonion/connectonion-ts"
   },
   "bugs": {
-    "url": "https://github.com/wu-changxing/connectonion-ts/issues"
+    "url": "https://github.com/openonion/connectonion-ts/issues"
   },
-  "homepage": "https://github.com/wu-changxing/connectonion-ts#readme",
+  "homepage": "https://github.com/openonion/connectonion-ts#readme",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.67.0",
     "@google/generative-ai": "^0.24.1",
     "dotenv": "^16.0.0",
-    "openai": "^4.0.0"
+    "openai": "^4.0.0",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@types/jest": "^29.0.0",

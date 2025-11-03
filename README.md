@@ -65,18 +65,18 @@ class Database {
 - Auto-completion for all APIs
 - JSDoc comments become tool descriptions
 
-### 💾 **Automatic Behavior Tracking**
-Every action is recorded to `~/.connectonion/agents/{name}/behavior.json`
+### 💾 **Session & Trace**
+Agents keep an in-memory session (messages + tool execution trace). Inspect it with `agent.getSession()` and reset with `agent.resetConversation()`.
 
 ## 🚀 Quick Start (60 seconds)
 
 ### 1. Install
 ```bash
-npm install connectonion-ts
+npm install connectonion
 # or
-yarn add connectonion-ts
+yarn add connectonion
 # or
-pnpm add connectonion-ts
+pnpm add connectonion
 ```
 
 ### 2. Set API Key
@@ -256,7 +256,7 @@ console.log(tools.map(t => `${t.name}: ${t.description}`));
 
 ### Custom LLM Providers
 ```typescript
-import { LLM, Agent } from 'connectonion-ts';
+import { LLM, Agent } from 'connectonion';
 
 class CustomLLM implements LLM {
   async complete(messages, tools) {
@@ -271,17 +271,11 @@ const agent = new Agent({
 });
 ```
 
-### Conversation History
+### Session & Trace
 ```typescript
-// Access complete history
-const history = agent.getHistory();
-
-// Filter specific events
-const toolCalls = history.filter(h => h.type === 'tool_call');
-const errors = toolCalls.filter(t => t.data.result.status === 'error');
-
-// Clear history when needed
-agent.clearHistory();
+const { messages, trace } = agent.getSession();
+console.log(messages.length, trace.length);
+agent.clearHistory(); // clear in-memory trace
 ```
 
 ### Override Iterations for Complex Tasks
@@ -324,7 +318,7 @@ We love contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 ### Development Setup
 ```bash
 # Clone the repo
-git clone https://github.com/connectonion/connectonion-ts
+git clone https://github.com/openonion/connectonion-ts
 cd connectonion-ts
 
 # Install dependencies
@@ -339,11 +333,11 @@ npm run build
 
 ## 📄 License
 
-MIT © [CO Team](https://github.com/connectonion)
+MIT © [OpenOnion Team](https://github.com/openonion)
 
 ## 🔗 Links
 
-- **[Python Version](https://github.com/connectonion/connectonion)** - Original Python SDK
+- **[Python Version](https://github.com/openonion/connectonion)** - Original Python SDK
 - **[Discord Community](https://discord.gg/connectonion)** - Get help & share ideas
 - **[Blog](https://connectonion.com/blog)** - Tutorials and updates
 
@@ -364,5 +358,5 @@ While our Python SDK is great, TypeScript offers unique advantages:
 </p>
 
 <p align="center">
-  <a href="https://github.com/connectonion/connectonion-ts">⭐ Star us on GitHub</a>
+  <a href="https://github.com/openonion/connectonion-ts">⭐ Star us on GitHub</a>
 </p>

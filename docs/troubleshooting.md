@@ -19,7 +19,7 @@ Common issues and their solutions when using ConnectOnion TypeScript. This guide
 
 ## Installation Issues
 
-### Problem: `npm install connectonion-ts` fails
+### Problem: `npm install connectonion` fails
 
 **Symptoms:**
 ```bash
@@ -31,7 +31,7 @@ The package might not be published yet or you're using the wrong name.
 
 ```bash
 # Try these alternatives:
-npm install @connectonion/typescript-sdk
+npm install connectonion
 # or
 npm install connectonion-typescript
 # or check the exact package name in the repository
@@ -39,7 +39,7 @@ npm install connectonion-typescript
 
 **Workaround - Install from source:**
 ```bash
-git clone https://github.com/connectonion/connectonion-ts
+git clone https://github.com/openonion/connectonion-ts
 cd connectonion-ts
 npm install
 npm run build
@@ -75,9 +75,9 @@ npm install --save-dev typescript @types/node
 
 3. If using ES modules, try:
 ```typescript
-import { Agent } from 'connectonion-ts';
+import { Agent } from 'connectonion';
 // instead of
-const { Agent } = require('connectonion-ts');
+const { Agent } = require('connectonion');
 ```
 
 ---
@@ -499,7 +499,7 @@ function processMixedInput(input: string | number | boolean): string {
 
 **Symptoms:**
 ```
-Cannot find module 'connectonion-ts' or its corresponding type declarations
+Cannot find module 'connectonion' or its corresponding type declarations
 ```
 
 **Solutions:**
@@ -520,10 +520,10 @@ Cannot find module 'connectonion-ts' or its corresponding type declarations
 2. **Use correct import syntax:**
 ```typescript
 // ES Modules (most cases)
-import { Agent, Tool } from 'connectonion-ts';
+import { Agent, Tool } from 'connectonion';
 
 // CommonJS (if needed)
-const { Agent, Tool } = require('connectonion-ts');
+const { Agent, Tool } = require('connectonion');
 ```
 
 3. **Check tsconfig.json:**
@@ -636,10 +636,10 @@ class ManagedAgent {
   async input(message: string): Promise<string> {
     const response = await this.agent.input(message);
     
-    const history = this.agent.getHistory();
+    const { trace } = this.agent.getSession();
     if (history.length > this.maxHistoryLength) {
       // Keep only recent history
-      const recentHistory = history.slice(-this.maxHistoryLength);
+      const recentTrace = trace.slice(-this.maxHistoryLength);
       this.agent.clearHistory();
       // In a real implementation, you'd restore the recent history
     }
@@ -719,7 +719,7 @@ async function monitoredChat(message: string): Promise<string> {
   const response = await agent.input(message);
   
   // Check what happened
-  const history = agent.getHistory();
+  const { messages, trace } = agent.getSession();
   const latestEntries = history.slice(-5); // Last 5 entries
   
   console.log('Recent behavior:');
@@ -745,7 +745,7 @@ async function monitoredChat(message: string): Promise<string> {
 Before creating a new issue, search the repository for similar problems:
 ```bash
 # Check GitHub issues
-https://github.com/connectonion/connectonion-ts/issues
+https://github.com/openonion/connectonion-ts/issues
 
 # Search closed issues too - your problem might be solved
 ```
@@ -756,7 +756,7 @@ When reporting issues, provide a minimal example:
 
 ```typescript
 // minimal-reproduction.ts
-import { Agent } from 'connectonion-ts';
+import { Agent } from 'connectonion';
 
 function problemTool(input: string): string {
   // Demonstrate the issue here
@@ -795,7 +795,7 @@ console.log('TypeScript version:', require('typescript/package.json').version);
 ### Community Support
 
 - **Discord**: Join our [Discord community](https://discord.gg/4xfD9k8AUF)
-- **GitHub Issues**: [Report bugs or request features](https://github.com/connectonion/connectonion-ts/issues)
+- **GitHub Issues**: [Report bugs or request features](https://github.com/openonion/connectonion-ts/issues)
 - **Stack Overflow**: Tag questions with `connectonion` and `typescript`
 
 ### Pro Tips for Getting Help
