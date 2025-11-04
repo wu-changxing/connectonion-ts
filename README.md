@@ -1,6 +1,6 @@
 # 🚀 ConnectOnion TypeScript SDK
 
-> **Build AI agents that actually DO things** - Zero boilerplate, maximum power
+> **Connect to Python agents from TypeScript** - Use powerful Python agents in your TypeScript apps
 
 [![npm version](https://img.shields.io/npm/v/connectonion.svg)](https://www.npmjs.com/package/connectonion)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](https://www.typescriptlang.org/)
@@ -8,65 +8,35 @@
 
 ## ✨ What is ConnectOnion?
 
-ConnectOnion is a TypeScript SDK that makes building AI agents ridiculously simple. Your functions become tools. Your classes become toolsets. Your agents just work.
+ConnectOnion TypeScript SDK lets you **connect to and use AI agents built with Python**. Build your agents in Python (where the ecosystem is rich), then use them seamlessly from TypeScript/JavaScript applications.
 
 ```typescript
-// This is all you need for a working AI agent
-import { Agent } from 'connectonion';
+// Connect to a Python agent and use it
+import { connect } from 'connectonion';
 
-function calculateTip(bill: number, percentage: number): number {
-  return bill * (percentage / 100);
-}
+// Connect to a remote agent by address
+const agent = connect('0x3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c');
 
-const agent = new Agent({
-  name: 'assistant',
-  tools: [calculateTip]  // Your function is now an AI tool!
-});
-
-const response = await agent.input('What\'s a 20% tip on $85?');
-// "A 20% tip on $85 would be $17.00"
+// Use it like a local function
+const result = await agent.input('Search for TypeScript tutorials');
+console.log(result);
 ```
 
-**That's it.** No schemas. No configurations. No boilerplate.
+**That's it.** No server setup. No complex configuration. Just connect and use.
 
-## 🆕 Python-Parity Highlights
+## 🎯 Why Use This?
 
-- Default LLM: Anthropic Claude Sonnet 3.5 (`claude-3-5-sonnet-20241022`)
-- LLM factory: routes `claude-*`, `gpt-*`/`o*`, `gemini-*`, and `co/*` (OpenOnion)
-- Structured output: `llm.structuredComplete(messages, schema)` returns validated JSON
-- Multi‑turn: agent now keeps conversation state until `resetConversation()`
-- Console logging: progress printed and logged to `./.co/logs/{name}.log` by default
-- Env override: set `CONNECTONION_LOG` to choose a custom log file
+### 🐍 **Build Agents in Python**
+Python has the richest AI ecosystem - LangChain, LlamaIndex, transformers, and countless ML libraries. Build your agents where the tools are best.
 
-## 🎯 Why CO?
+### 📱 **Use Agents in TypeScript**
+Your web apps, React frontends, Node.js backends, and Electron apps are in TypeScript. Now you can use powerful Python agents directly.
 
-### 🧠 **Smart by Default**
-- Agents automatically understand when and how to use tools
-- Built-in conversation memory and context management
-- Parallel tool execution for maximum efficiency
+### 🌐 **Zero Infrastructure**
+No servers to manage. No API endpoints to deploy. Agents connect peer-to-peer through the relay network.
 
-### 🛠️ **Any Function is a Tool**
-```typescript
-// These all become tools automatically
-function sendEmail(to: string, subject: string) { }
-async function fetchWeather(city: string) { }
-const calculate = (x: number, y: number) => x + y;
-
-// Even class methods!
-class Database {
-  query(sql: string) { }
-  insert(table: string, data: any) { }
-}
-```
-
-### 📝 **TypeScript Superpowers**
-- Full type safety and IntelliSense support
-- Compile-time parameter validation
-- Auto-completion for all APIs
-- JSDoc comments become tool descriptions
-
-### 💾 **Session & Trace**
-Agents keep an in-memory session (messages + tool execution trace). Inspect it with `agent.getSession()` and reset with `agent.resetConversation()`.
+### 🔒 **Secure by Design**
+Ed25519 cryptographic addressing. No passwords. No auth tokens to leak. Just public/private key pairs.
 
 ## 🚀 Quick Start (60 seconds)
 
@@ -79,224 +49,161 @@ yarn add connectonion
 pnpm add connectonion
 ```
 
-### 2. Set API Key
-```bash
-export OPENAI_API_KEY=sk-...
-# or use .env file
-
-# Anthropic (default)
-export ANTHROPIC_API_KEY=sk-ant-...
-
-# Gemini (optional)
-export GEMINI_API_KEY=sk-gem-...  # or GOOGLE_API_KEY
-
-# OpenOnion managed keys (optional, for co/* models)
-export OPENONION_API_KEY=oo-...
-export OPENONION_BASE_URL=https://oo.openonion.ai/v1
-# Dev mode: uses http://localhost:8000/v1
-export OPENONION_DEV=1
-
-# Console log override (otherwise ./.co/logs/{name}.log)
-export CONNECTONION_LOG=./my-agent.log
-```
-
-### 3. Create Your First Agent
+### 2. Connect to a Python Agent
 ```typescript
-import { Agent } from 'connectonion';
+import { connect } from 'connectonion';
 
-// Define what your agent can do
-function searchWeb(query: string): string {
-  // Your search logic here
-  return `Results for ${query}...`;
-}
-
-function sendMessage(to: string, message: string): string {
-  // Your messaging logic here
-  return `Message sent to ${to}`;
-}
-
-// Create the agent
-const agent = new Agent({
-  name: 'personal-assistant',
-  tools: [searchWeb, sendMessage],
-  systemPrompt: 'You are a helpful personal assistant.'
-});
+// Connect to a remote Python agent
+const agent = connect('0x3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c');
 
 // Use it!
-const response = await agent.input(
-  'Search for TypeScript tutorials and send the link to John'
-);
+const response = await agent.input('Analyze this data and create a report');
+console.log(response);
 ```
+
+### 3. Create the Python Agent (Optional)
+
+If you need to create your own agent in Python:
+
+```python
+# pip install connectonion
+from connectonion import Agent, announce
+
+def analyze_data(data: str) -> str:
+    """Analyze data and create a report"""
+    # Your Python logic with pandas, numpy, etc.
+    return f"Analysis: {data}"
+
+agent = Agent(
+    name="data-analyst",
+    tools=[analyze_data]
+)
+
+# Announce to the network
+announce(agent)
+# Prints: Agent address: 0x3d401...
+```
+
+Then connect from TypeScript as shown above!
 
 ## 🎨 Real-World Examples
 
-### Example 1: Customer Service Bot
+### Example 1: Connect to ML Agent from React App
 ```typescript
-class CustomerService {
-  // Each method becomes a tool automatically
-  async lookupOrder(orderId: string): Promise<Order> {
-    return await db.orders.findOne({ id: orderId });
-  }
+// React component using a Python ML agent
+import { connect } from 'connectonion';
+import { useState } from 'react';
 
-  async processRefund(orderId: string, reason: string): Promise<RefundResult> {
-    const order = await this.lookupOrder(orderId);
-    return await payments.refund(order, reason);
-  }
+function DataAnalyzer() {
+  const [result, setResult] = useState('');
+  const agent = connect('0xYourPythonMLAgent');
 
-  async sendEmail(to: string, subject: string, body: string): Promise<void> {
-    await emailService.send({ to, subject, body });
-  }
-}
-
-// Create an agent with all methods as tools
-const agent = new Agent({
-  name: 'customer-service',
-  tools: [new CustomerService()],  // All methods become tools!
-  systemPrompt: 'You are a helpful customer service representative.'
-});
-
-// Handle customer requests naturally
-const response = await agent.input(
-  'Order #12345 arrived damaged, I want a refund'
-);
-// Agent will: lookup order → process refund → send confirmation email
-```
-
-### Example 2: Data Analysis Agent
-```typescript
-import { Agent } from 'connectonion';
-import * as fs from 'fs';
-import * as csv from 'csv-parse';
-
-// Tools for data analysis
-function readCSV(filepath: string): any[] {
-  const data = fs.readFileSync(filepath, 'utf-8');
-  return csv.parse(data, { columns: true });
-}
-
-function analyzeData(data: any[], column: string): Statistics {
-  // Statistical analysis logic
-  return {
-    mean: calculateMean(data, column),
-    median: calculateMedian(data, column),
-    stdDev: calculateStdDev(data, column)
+  const analyze = async () => {
+    // Python agent has pandas, scikit-learn, matplotlib, etc.
+    const response = await agent.input(
+      'Analyze sales data and predict next quarter trends'
+    );
+    setResult(response);
   };
-}
 
-function createChart(data: any[], type: string): string {
-  // Chart generation logic
-  return `chart_${Date.now()}.png`;
+  return <button onClick={analyze}>Analyze Data</button>;
 }
+```
 
-// Create the analyst
-const analyst = new Agent({
-  name: 'data-analyst',
-  tools: [readCSV, analyzeData, createChart],
-  model: 'gpt-4', // Use GPT-4 for complex analysis
-  systemPrompt: 'You are an expert data analyst. Provide insights and visualizations.'
+### Example 2: Node.js Backend Using Python Agent
+```typescript
+// Express API using a Python agent for complex processing
+import express from 'express';
+import { connect } from 'connectonion';
+
+const app = express();
+const pythonAgent = connect('0xYourPythonAgent');
+
+app.post('/analyze', async (req, res) => {
+  // Offload heavy processing to Python agent
+  const result = await pythonAgent.input(req.body.query);
+  res.json({ result });
 });
 
-// Analyze data with natural language
-const report = await analyst.input(
-  'Analyze sales.csv, focus on Q4 performance, and create a bar chart'
+app.listen(3000);
+```
+
+### Example 3: Electron App with Python Backend
+```typescript
+// Electron app using Python agent for system operations
+import { connect } from 'connectonion';
+
+const systemAgent = connect('0xYourSystemAgent');
+
+async function handleFileOperation() {
+  // Python agent has full system access and libraries
+  const result = await systemAgent.input(
+    'Find all PDFs in Downloads, extract text, and summarize'
+  );
+  return result;
+}
+```
+
+## 🔧 Connection Options
+
+### Custom Relay URL
+```typescript
+// Connect to local development relay
+const agent = connect(
+  '0xYourAgent',
+  'ws://localhost:8000/ws/announce'
+);
+
+// Or use environment variable
+process.env.RELAY_URL = 'ws://localhost:8000/ws/announce';
+const agent = connect('0xYourAgent'); // uses RELAY_URL
+```
+
+### Timeout Configuration
+```typescript
+// Adjust timeout for long-running tasks
+const result = await agent.input(
+  'Process large dataset',
+  60000 // 60 second timeout
 );
 ```
 
-### Example 3: DevOps Automation
+### Multiple Agents
 ```typescript
-class DevOpsTools {
-  async deployToProduction(service: string, version: string) {
-    // Kubernetes deployment logic
-    return `Deployed ${service}:${version} to production`;
-  }
+// Connect to different specialized agents
+const mlAgent = connect('0xMLAgent');
+const nlpAgent = connect('0xNLPAgent');
+const visionAgent = connect('0xVisionAgent');
 
-  async checkSystemHealth(service: string) {
-    // Health check logic
-    return { status: 'healthy', uptime: '99.9%' };
-  }
-
-  async rollback(service: string) {
-    // Rollback logic
-    return `Rolled back ${service} to previous version`;
-  }
-
-  async queryLogs(service: string, timeRange: string, filter?: string) {
-    // Log querying logic
-    return [`[ERROR] Connection timeout`, `[WARN] High memory usage`];
-  }
-}
-
-const devops = new Agent({
-  name: 'devops-assistant',
-  tools: [new DevOpsTools()],
-  maxIterations: 20, // Complex operations might need more iterations
-  systemPrompt: 'You are a DevOps expert. Be cautious with production changes.'
-});
-
-// Natural language DevOps
-await devops.input(
-  'Check if api-service is healthy, if not check logs and consider rollback'
-);
-```
-
-## 🔧 Advanced Features
-
-### Dynamic Tool Management
-```typescript
-// Add tools at runtime
-agent.addTool(newFunction);
-
-// Remove tools
-agent.removeTool('oldToolName');
-
-// List available tools
-const tools = agent.getTools();
-console.log(tools.map(t => `${t.name}: ${t.description}`));
-```
-
-### Custom LLM Providers
-```typescript
-import { LLM, Agent } from 'connectonion';
-
-class CustomLLM implements LLM {
-  async complete(messages, tools) {
-    // Your LLM implementation
-    return { content: '...', toolCalls: [], rawResponse: {} };
-  }
-}
-
-const agent = new Agent({
-  name: 'custom-agent',
-  llm: new CustomLLM()
-});
-```
-
-### Session & Trace
-```typescript
-const { messages, trace } = agent.getSession();
-console.log(messages.length, trace.length);
-agent.clearHistory(); // clear in-memory trace
-```
-
-### Override Iterations for Complex Tasks
-```typescript
-// Simple task - use default
-await agent.input('What is 2+2?');
-
-// Complex multi-step task - allow more iterations
-await agent.input(
-  'Analyze all CSV files, generate reports, and email summaries',
-  30 // Allow up to 30 iterations
-);
+// Use them in parallel
+const [analysis, sentiment, objects] = await Promise.all([
+  mlAgent.input('Analyze time series'),
+  nlpAgent.input('Extract sentiment from reviews'),
+  visionAgent.input('Detect objects in image')
+]);
 ```
 
 ## 📚 Documentation
 
 - **[Getting Started Guide](docs/getting-started.md)** - Complete setup walkthrough
+- **[Connect API](docs/connect.md)** - Remote agent connection details
 - **[API Reference](docs/api.md)** - Full API documentation
-- **[Examples](docs/examples.md)** - More real-world examples
-- **[Tool System](docs/tools.md)** - Deep dive into tools
 - **[Troubleshooting](docs/troubleshooting.md)** - Common issues & solutions
+
+### Building Agents in TypeScript (Experimental)
+
+While we recommend building agents in Python, you can also build simple agents directly in TypeScript:
+
+- **[Tool System](docs/tools.md)** - How to create tools in TypeScript
+- **[Examples](docs/examples.md)** - TypeScript agent examples
+
+**Important Notes**:
+- TypeScript agent features are **experimental** and may have bugs
+- Python agent features are **well-tested and fully supported**
+- For complex agents with ML, data processing, or extensive Python libraries, use Python and connect via `connect()`
+- **Full TypeScript agent support planned for Q1 2026**
+
+If you encounter bugs building agents in TypeScript, please [report them on GitHub](https://github.com/openonion/connectonion-ts/issues).
 
 ## 🏗️ Project Structure
 
@@ -341,15 +248,22 @@ MIT © [OpenOnion Team](https://github.com/openonion)
 - **[Discord Community](https://discord.gg/4xfD9k8AUF)** - Get help & share ideas
 - **[Blog](https://connectonion.com/blog)** - Tutorials and updates
 
-## 🌟 Why TypeScript?
+## 🌟 Why This Architecture?
 
-While our Python SDK is great, TypeScript offers unique advantages:
+### Python for Agents
+- **Rich AI Ecosystem**: LangChain, transformers, pandas, scikit-learn, PyTorch, TensorFlow
+- **Data Processing**: NumPy, SciPy, matplotlib for complex analysis
+- **Mature Libraries**: Decades of proven Python libraries
+- **Simple Setup**: `pip install` and you're ready
 
+### TypeScript for Apps
+- **Web & Mobile**: React, Next.js, React Native, Electron
 - **Type Safety**: Catch errors at compile time
 - **IDE Support**: Unmatched IntelliSense and auto-completion
-- **Modern Async**: Native async/await and Promise handling
-- **NPM Ecosystem**: Access to millions of packages
-- **Browser Ready**: Build agents that run in browsers (coming soon!)
+- **NPM Ecosystem**: Access to millions of UI/frontend packages
+
+### Best of Both Worlds
+Build agents where the tools are rich (Python), use them where users are (TypeScript apps).
 
 ---
 

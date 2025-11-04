@@ -103,29 +103,26 @@ const tools = agent.getTools();
 console.log(tools.map(t => t.name)); // ['add', 'multiply', 'getWeather']
 ```
 
-#### `getHistory(): BehaviorEntry[]`
+#### `getSession(): { messages: Message[]; trace: any[]; iteration: number; user_prompt: string }`
 
-Gets the complete conversation and behavior history.
+Gets the current in-memory session, including conversation messages and the tool execution trace.
 
 **Returns:**
-- `BehaviorEntry[]` - Array of all behavior entries with timestamps
+- Object with `messages`, `trace`, `iteration`, and `user_prompt`.
 
 **Example:**
 ```typescript
-const history = agent.getHistory();
-history.forEach(entry => {
-  console.log(`${entry.timestamp}: ${entry.type} - ${JSON.stringify(entry.data)}`);
-});
+const { messages, trace } = agent.getSession();
+console.log(messages.length, trace.length);
 ```
 
 #### `clearHistory(): void`
 
-Clears all conversation history and behavior tracking data.
+Clears the in-memory tool execution trace for the current session.
 
 **Example:**
 ```typescript
-agent.clearHistory();
-console.log(agent.getHistory().length); // 0
+agent.clearHistory(); // clears trace
 ```
 
 #### `setSystemPrompt(prompt: string): void`
@@ -175,7 +172,7 @@ interface AgentConfig {
 
 **Field Details:**
 
-- **`name`**: Unique identifier for the agent. Used for behavior tracking file paths.
+- **`name`**: Unique identifier for the agent.
 - **`llm`**: Custom LLM provider implementing the `LLM` interface. Defaults to OpenAI.
 - **`tools`**: Can be functions, class instances, or objects implementing the `Tool` interface.
 - **`systemPrompt`**: Instructions that guide the agent's behavior and personality.
@@ -319,23 +316,13 @@ const schema: FunctionSchema = {
 };
 ```
 
-### BehaviorEntry
+### Session Trace Entry (shape)
 
-Represents an entry in the agent's behavior tracking history.
+Each tool execution appends a trace entry with fields like:
 
-```typescript
-interface BehaviorEntry {
-  timestamp: string;          // ISO timestamp
-  type: 'input' | 'llm_response' | 'tool_call' | 'output';
-  data: any;                  // Entry-specific data
-}
 ```
-
-**Entry Types:**
-- **`input`**: User message received
-- **`llm_response`**: Response from LLM (may include tool calls)  
-- **`tool_call`**: Tool execution with arguments and results
-- **`output`**: Final response sent to user
+{ tool_name: string, timing: number, status: 'success'|'error'|'not_found', args?: any, result?: any, iteration?: number }
+```
 
 ### ToolResult
 
@@ -431,7 +418,7 @@ const agent = new Agent({
 Implement the `LLM` interface to use other providers:
 
 ```typescript
-import { LLM, LLMResponse, Message, FunctionSchema } from 'connectonion-ts';
+import { LLM, LLMResponse, Message, FunctionSchema } from 'connectonion';
 
 class AnthropicProvider implements LLM {
   private apiKey: string;

@@ -1,10 +1,11 @@
 # 🚀 Getting Started with ConnectOnion TypeScript
 
-Build your first AI agent in **60 seconds** - we timed it!
+Connect to Python agents from TypeScript in **60 seconds** - we timed it!
 
 ## Table of Contents
 - [Installation](#installation)
-- [Your First Agent](#your-first-agent)
+- [Connect to Python Agents](#connect-to-python-agents)
+- [Building Agents in TypeScript (Optional)](#building-agents-in-typescript-optional)
 - [Understanding Tools](#understanding-tools)
 - [Configuration Options](#configuration-options)
 - [Common Patterns](#common-patterns)
@@ -15,7 +16,6 @@ Build your first AI agent in **60 seconds** - we timed it!
 ### Prerequisites
 - Node.js 16+ installed
 - TypeScript 4.5+ (optional, but recommended)
-- OpenAI API key ([get one here](https://platform.openai.com/api-keys))
 
 ### Install the Package
 
@@ -40,102 +40,122 @@ npm install -D typescript @types/node
 npx tsc --init
 ```
 
-Recommended `tsconfig.json`:
-```json
-{
-  "compilerOptions": {
-    "target": "ES2020",
-    "module": "commonjs",
-    "lib": ["ES2020"],
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "outDir": "./dist",
-    "rootDir": "./src"
-  }
-}
-```
+## Connect to Python Agents
 
-## Your First Agent
+### Step 1: Connect to a Remote Agent
 
-### Step 1: Set Your API Key
-
-Create a `.env` file in your project root:
-
-```bash
-OPENAI_API_KEY=sk-your-api-key-here
-```
-
-**Security Tip**: Add `.env` to your `.gitignore` file!
-
-### Step 2: Create Your Agent
-
-Create `src/my-agent.ts`:
+The **primary use case** for ConnectOnion-TS is connecting to Python agents:
 
 ```typescript
-import { Agent } from 'connectonion';
+import { connect } from 'connectonion';
 
-// Define a tool - any function becomes a tool!
-function greet(name: string): string {
-  /**
-   * Greet someone by name
-   * The LLM reads this comment!
-   */
-  return `Hello, ${name}! Welcome to ConnectOnion!`;
-}
+// Connect to a Python agent by its address
+const agent = connect('0x3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c');
 
-function calculate(expression: string): number {
-  /**
-   * Safely evaluate a math expression
-   */
-  // In production, use a proper math parser!
-  return eval(expression);
-}
-
-// Create your agent
-const agent = new Agent({
-  name: 'my-first-agent',
-  tools: [greet, calculate],
-  systemPrompt: 'You are a friendly assistant who loves to help!'
-});
-
-// Use your agent
+// Use it like a local function
 async function main() {
-  // Simple greeting
-  const response1 = await agent.input('Say hello to Alice');
-  console.log(response1);
-  // Output: "Hello, Alice! Welcome to ConnectOnion!"
-
-  // Math calculation
-  const response2 = await agent.input('What is 42 times 17?');
-  console.log(response2);
-  // Output: "42 times 17 equals 714"
-
-  // Multiple tools in one request
-  const response3 = await agent.input(
-    'Greet Bob and calculate 100 divided by 4'
-  );
-  console.log(response3);
-  // Output: "Hello Bob! 100 divided by 4 equals 25"
+  const result = await agent.input('Analyze this dataset and generate insights');
+  console.log(result);
 }
 
 main().catch(console.error);
 ```
 
-### Step 3: Run Your Agent
+### Step 2: Run It
 
 ```bash
 # If using TypeScript
-npx ts-node src/my-agent.ts
+npx ts-node src/connect-example.ts
 
 # Or compile and run
 npx tsc
-node dist/my-agent.js
+node dist/connect-example.js
 ```
 
-**🎉 Congratulations!** You've built your first AI agent!
+**🎉 Congratulations!** You're now using a Python agent from TypeScript!
+
+### Step 3: Create Your Own Python Agent (Optional)
+
+Want to create your own agent? Use Python:
+
+```python
+# pip install connectonion
+from connectonion import Agent, announce
+
+def analyze_data(data: str) -> str:
+    """Use pandas, numpy, scikit-learn, etc."""
+    import pandas as pd
+    # Your complex Python logic here
+    return f"Analysis complete: {data}"
+
+agent = Agent(
+    name="data-analyst",
+    tools=[analyze_data]
+)
+
+# Start listening for connections
+announce(agent)
+# Prints: Agent address: 0x3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c
+```
+
+Then connect from TypeScript as shown in Step 1!
+
+## Building Agents in TypeScript (Experimental)
+
+**⚠️ Note**: Building agents in TypeScript is experimental. **We strongly recommend using Python** for building agents because:
+
+- Python agent features are **well-tested and fully supported**
+- Python has the richest AI ecosystem (LangChain, transformers, pandas, numpy, etc.)
+- TypeScript agent features may have bugs
+- **Full TypeScript agent support is planned for Q1 2026**
+
+**If you choose to build agents in TypeScript and encounter issues, please [report bugs on GitHub](https://github.com/openonion/connectonion-ts/issues).** Your feedback helps us improve!
+
+### When to Build in TypeScript
+- Simple tools that don't require Python libraries
+- TypeScript-specific integrations (Node.js APIs, npm packages)
+- Quick prototypes when Python is not available
+
+### When to Use Python Instead (Recommended)
+- **Any serious agent work** - Python is the primary platform
+- Machine learning and data science tasks
+- Complex data processing
+- When you need reliable, well-tested features
+
+### Simple TypeScript Agent Example
+
+```typescript
+import { Agent } from 'connectonion';
+
+// Simple TypeScript tools
+function getCurrentTime(): string {
+  return new Date().toLocaleString();
+}
+
+// Create agent (requires API key)
+const agent = new Agent({
+  name: 'simple-assistant',
+  tools: [getCurrentTime],
+  systemPrompt: 'You are a simple assistant.'
+});
+
+async function main() {
+  const response = await agent.input('What time is it?');
+  console.log(response);
+}
+
+main().catch(console.error);
+```
+
+**Requires API key**:
+```bash
+# .env file
+ANTHROPIC_API_KEY=sk-ant-...
+# or
+OPENAI_API_KEY=sk-...
+```
+
+**Remember**: For production agents, use Python and connect via `connect()`!
 
 ## Understanding Tools
 

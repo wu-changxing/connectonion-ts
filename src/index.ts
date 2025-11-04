@@ -24,3 +24,4 @@ export * from './trust/tools';
 
 export * from './types';
 export { llmDo } from './llm/llm-do';
+export { connect, RemoteAgent } from './connect';

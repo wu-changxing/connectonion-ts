@@ -66,7 +66,7 @@ The simplest and most common way to create tools. Any TypeScript function can be
 ### Basic Function Tools
 
 ```typescript
-import { Agent } from 'connectonion-ts';
+import { Agent } from 'connectonion';
 
 // Simple synchronous tool
 function add(a: number, b: number): number {
@@ -293,7 +293,7 @@ For maximum control, implement the `Tool` interface directly.
 ### Basic Custom Tool
 
 ```typescript
-import { Tool, FunctionSchema } from 'connectonion-ts';
+import { Tool, FunctionSchema } from 'connectonion';
 
 const weatherTool: Tool = {
   name: 'get_weather',

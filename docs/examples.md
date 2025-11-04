@@ -20,7 +20,7 @@ This guide walks you through real-world examples, from simple to complex. Each e
 **Perfect for:** Quick automation, simple calculations, basic utilities
 
 ```typescript
-import { Agent } from 'connectonion-ts';
+import { Agent } from 'connectonion';
 
 // Math utilities
 function add(a: number, b: number): number {
@@ -73,7 +73,7 @@ main().catch(console.error);
 **Perfect for:** Managing state, complex business logic, service integrations
 
 ```typescript
-import { Agent } from 'connectonion-ts';
+import { Agent } from 'connectonion';
 
 class ContactManager {
   private contacts: Array<{id: number, name: string, email: string, phone?: string}> = [];
@@ -165,7 +165,7 @@ main().catch(console.error);
 **Perfect for:** Data collection, research, content analysis
 
 ```typescript
-import { Agent } from 'connectonion-ts';
+import { Agent } from 'connectonion';
 import https from 'https';
 import { URL } from 'url';
 
@@ -230,7 +230,7 @@ class WebScraper {
     return [...new Set(links)]; // Remove duplicates
   }
 
-  getScrapedHistory(): Record<string, any> {
+  getScrapedSession(): Record<string, any> {
     /** Get history of all scraped pages */
     return Object.fromEntries(this.scraped);
   }
@@ -281,7 +281,7 @@ main().catch(console.error);
 **Perfect for:** Support systems, FAQ handling, order management
 
 ```typescript
-import { Agent } from 'connectonion-ts';
+import { Agent } from 'connectonion';
 
 interface Customer {
   id: string;
@@ -452,7 +452,7 @@ main().catch(console.error);
 **Perfect for:** Development tools, code review, refactoring assistance
 
 ```typescript
-import { Agent } from 'connectonion-ts';
+import { Agent } from 'connectonion';
 import { readFileSync, existsSync, readdirSync, statSync } from 'fs';
 import { join, extname } from 'path';
 
@@ -611,7 +611,7 @@ class CodeAnalyzer {
     return analysis;
   }
 
-  getAnalysisHistory(): Record<string, any> {
+  getAnalysisSession(): Record<string, any> {
     /** Get history of all analyzed files */
     return Object.fromEntries(this.analysisCache);
   }
@@ -641,7 +641,7 @@ async function main() {
   console.log('\n--- Code Analysis Demo ---\n');
   
   // You would replace these with actual file paths in your project
-  console.log(await agent.input('Please analyze the project structure of /Users/changxing/project/OnCourse/platform/connectonion-ts'));
+  console.log(await agent.input('Please analyze the project structure of /path/to/project'));
   
   console.log(await agent.input('Read the main agent source file and analyze its code quality'));
   
@@ -665,7 +665,7 @@ main().catch(console.error);
 **Perfect for:** Complex workflows, specialized agents, collaborative processing
 
 ```typescript
-import { Agent } from 'connectonion-ts';
+import { Agent } from 'connectonion';
 
 // Shared data store for agents to communicate
 class SharedWorkspace {
@@ -865,7 +865,7 @@ main().catch(console.error);
 **Perfect for:** Using different models, custom API integrations, specialized providers
 
 ```typescript
-import { Agent, LLM, LLMResponse, Message, FunctionSchema } from 'connectonion-ts';
+import { Agent, LLM, LLMResponse, Message, FunctionSchema } from 'connectonion';
 
 // Example custom LLM that could integrate with other providers
 class CustomLLMProvider implements LLM {
@@ -993,7 +993,7 @@ async function main() {
   
   // Show conversation history to see how tools were used
   console.log('\nConversation history:');
-  const history = agent.getHistory();
+  const { messages, trace } = agent.getSession();
   console.log(JSON.stringify(history, null, 2));
 }
 
