@@ -110,7 +110,7 @@ describe('Agent', () => {
     expect(response).toBe('Final response after tool call');
   });
 
-  it('should handle tool errors gracefully', async () => {
+  it('propagates tool errors (let it crash)', async () => {
     function errorTool(): string {
       throw new Error('Tool error');
     }
@@ -138,8 +138,7 @@ describe('Agent', () => {
       tools: [errorTool]
     });
 
-    const response = await agent.input('Use the error tool');
-    expect(response).toBe('Handled the error');
+    await expect(agent.input('Use the error tool')).rejects.toThrow('Tool error');
   });
 
   it('should add and remove tools dynamically', () => {

@@ -40,9 +40,9 @@ async function main() {
     const response = await agent.input('What is 15 plus 27, and then multiply the result by 2?');
     console.log('\nAgent response:', response);
     
-    // Check history
-    const history = agent.getHistory();
-    console.log('\nNumber of history entries:', history.length);
+    // Inspect session
+    const { messages, trace } = agent.getSession();
+    console.log('\nSession:', { messages: messages.length, trace: trace.length });
     
     console.log('\n✅ Test completed successfully!');
   } catch (error) {

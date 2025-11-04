@@ -78,8 +78,8 @@ npm run test:watch
    - `extractMethodsFromInstance()`: Converts all public class methods to tools
    - `xray()`: Marks functions as debugger breakpoints
 
-4. **History (`src/history/index.ts`)**: Behavior tracking
-   - Persists to `~/.connectonion/agents/{name}/behavior.json`
+4. **Session**: In-memory (messages + trace)
+   - No persistence; inspect via `agent.getSession()`
    - Records: inputs, LLM responses, tool calls, outputs
    - Auto-creates directory structure
 
@@ -121,7 +121,7 @@ Core types in `src/types.ts`:
 - `Tool`: Unified tool interface with `run()` and `toFunctionSchema()`
 - `Message`: OpenAI-compatible message format
 - `LLMResponse`: Standardized LLM output (content + toolCalls)
-- `BehaviorEntry`: History tracking schema
+Session trace entries: `{ tool_name, timing, status, args?, result?, iteration? }`
 
 ## Environment Variables
 
@@ -146,7 +146,7 @@ CONNECTONION_LOG=./my-agent.log # Override default log path
 ### Agent State Management
 - **Persistent conversation**: `this.messages` array (lazy-init, persists across `input()` calls)
 - **Reset conversation**: `agent.resetConversation()` clears messages and history
-- **History tracking**: Separate from conversation, records all behaviors to disk
+- **Session & trace**: In-memory structures for conversation and tool steps
 
 ### Tool Execution
 - **Parallel execution**: All tool calls in single LLM response run via `Promise.all`
@@ -212,7 +212,7 @@ Unlike single-turn execution, `this.messages` persists across `input()` calls fo
 Tools receive named arguments as objects, but functions expect positional parameters. The tool system maps `args: {a: 1, b: 2}` to `func(1, 2)` using parameter order from the function signature.
 
 ### Behavior Tracking Location
-Behaviors save to `~/.connectonion/agents/{name}/behavior.json`, not project directory. This matches Python SDK behavior.
+Use `agent.getSession()` to inspect messages and trace at runtime.
 
 ### Console Logging
 By default, logs to `./.co/logs/{name}.log` in the current working directory. This differs from Python's `~/.connectonion/` default but matches project-local logging expectations.

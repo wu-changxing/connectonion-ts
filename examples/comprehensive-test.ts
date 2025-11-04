@@ -205,21 +205,13 @@ async function testProcessTools() {
   assert(tools.length === 0, 'Undefined input should produce empty array');
 }
 
-async function testHistoryTracking() {
-  console.log('\n🧪 Testing History Tracking...');
-  
-  const agent = new Agent({
-    name: 'history-test-' + Date.now() // Unique name to avoid conflicts
-  });
-  
-  // Initially should be empty
-  let history = agent.getHistory();
-  assert(history.length === 0, 'History should start empty');
-  
-  // Clear history
+async function testSessionTrace() {
+  console.log('\n🧪 Testing Session & Trace...');
+  const agent = new Agent({ name: 'session-test-' + Date.now() });
+  const { messages, trace } = agent.getSession();
+  assert(Array.isArray(messages), 'Session messages available');
+  assert(Array.isArray(trace), 'Session trace available');
   agent.clearHistory();
-  history = agent.getHistory();
-  assert(history.length === 0, 'History should be empty after clear');
 }
 
 async function testToolWithOptionalParams() {
